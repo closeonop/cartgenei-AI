@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 
 // Update this if your backend uses a different endpoint path!
-const API_URL = "https://cartgenie-backend.onrender.com/api/chat";
+const API_URL = "https://cartgenie-backend.onrender.com/api/support";
 
 type Message = {
   id: string;
@@ -16,6 +16,7 @@ type Message = {
 export default function ChatbotPage() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId] = useState(() => "session_" + Math.random().toString(36).substring(7));
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -53,8 +54,10 @@ export default function ChatbotPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        // IMPORTANT: Adjust this payload to match exactly what your backend expects!
-        body: JSON.stringify({ message: userMessage.content }),
+        body: JSON.stringify({ 
+          query: userMessage.content,
+          sessionId: sessionId 
+        }),
       });
 
       if (!response.ok) {
@@ -66,8 +69,7 @@ export default function ChatbotPage() {
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "bot",
-        // IMPORTANT: Adjust 'data.reply' if your backend sends the response under a different key!
-        content: data.reply || data.message || "I received your message, but didn't know how to format the reply. Please check the backend response JSON structure.",
+        content: data.response?.customerMessage || data.response?.message || data.message || "I received your message, but didn't know how to format the reply.",
         timestamp: new Date(),
       };
 
