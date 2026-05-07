@@ -32,7 +32,7 @@ export default function Navbar() {
         </Link>
 
         <button
-          className="menu-toggle"
+          className={`menu-toggle${menuOpen ? " open" : ""}`}
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle menu"
         >
