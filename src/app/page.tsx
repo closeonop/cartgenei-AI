@@ -159,42 +159,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== CTA BANNER ===== */}
-      <section className="section">
-        <div className="cta-banner">
-          <h2>
-            Ready to <span style={{ color: "var(--primary)" }}>Supercharge</span>{" "}
-            Your Store?
-          </h2>
-          <p>
-            Join thousands of e-commerce brands using CartGenie AI to drive
-            more sales, reduce support load, and delight customers.
-          </p>
-          <div className="hero-ctas" style={{ justifyContent: "center", animation: "none", opacity: 1 }}>
-            <Link href="/free-trial" className="btn btn-primary">
-              Start Free Trial <span className="btn-arrow">→</span>
-            </Link>
-            <Link href="/chatbot" className="btn btn-outline">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                <path d="M9 9h6"></path>
-                <path d="M9 13h6"></path>
-              </svg>
-              Chat with AI
-            </Link>
-          </div>
-        </div>
-      </section>
+
     </>
   );
 }
