@@ -26,11 +26,16 @@ export default function ChatbotPage() {
     },
   ]);
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
   }, [messages]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,7 +118,7 @@ export default function ChatbotPage() {
           </div>
         </div>
         
-        <div className="chatbot-messages">
+        <div className="chatbot-messages" ref={messagesContainerRef}>
           {messages.map((msg) => (
             <div key={msg.id} className={`message ${msg.role === "bot" ? "bot-message" : "user-message"}`}>
               <div className="message-bubble">{msg.content}</div>
@@ -129,7 +134,6 @@ export default function ChatbotPage() {
               </div>
             </div>
           )}
-          <div ref={messagesEndRef} />
         </div>
         
         <form className="chatbot-input-area" onSubmit={handleSubmit}>
