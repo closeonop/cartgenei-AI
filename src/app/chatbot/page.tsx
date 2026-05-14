@@ -464,6 +464,7 @@ export default function ChatbotPage() {
           align-items: center;
           justify-content: center;
           transition: all 0.2s;
+          flex-shrink: 0;
         }
         
         .attach-btn:hover {
@@ -473,6 +474,7 @@ export default function ChatbotPage() {
         
         .chat-input {
           flex: 1;
+          min-width: 0;
           background: transparent;
           border: none;
           color: #fff;
@@ -504,6 +506,7 @@ export default function ChatbotPage() {
           transition: all 0.2s ease;
           margin-bottom: 2px;
           margin-right: 2px;
+          flex-shrink: 0;
         }
         
         .send-btn:hover:not(:disabled) {
@@ -550,6 +553,23 @@ export default function ChatbotPage() {
           }
           .chat-input-wrapper {
             padding: 0 1rem 1rem;
+          }
+          .chat-input-container {
+            border-radius: 20px;
+          }
+          .chat-input-row {
+            gap: 0.25rem;
+          }
+          .chat-input {
+            font-size: 0.95rem;
+            padding: 0.5rem 0.25rem;
+          }
+          .attach-btn {
+            padding: 0.4rem;
+          }
+          .send-btn {
+            width: 36px;
+            height: 36px;
           }
         }
       `}</style>
