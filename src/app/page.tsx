@@ -1,6 +1,5 @@
 import Link from "next/link";
 import HeroBg from "@/components/HeroBg";
-import FileUpload from "@/components/FileUpload";
 
 export default function Home() {
   return (
@@ -158,16 +157,6 @@ export default function Home() {
             </p>
           </div>
         </div>
-      </section>
-
-
-      {/* ===== FILE UPLOAD ===== */}
-      <section className="section" id="upload">
-        <div className="section-header">
-          <h2 className="section-title">Upload Documents</h2>
-          <p className="section-desc">Upload your PDFs, DOCs, or Images easily.</p>
-        </div>
-        <FileUpload />
       </section>
 
     </>
