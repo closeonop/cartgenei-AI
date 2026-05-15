@@ -1143,9 +1143,27 @@ img {
   text-align: right;
 }
 
+@keyframes typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+}
+
+.loading-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0.75rem 1rem;
+}
+
 .loading-dots span {
   display: inline-block;
-  animation: float 1.4s infinite ease-in-out both;
+  width: 6px;
+  height: 6px;
+  background-color: var(--primary);
+  border-radius: 50%;
+  animation: typing-bounce 1.4s infinite ease-in-out both;
 }
 
 .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
