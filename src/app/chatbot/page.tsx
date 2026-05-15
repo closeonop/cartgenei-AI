@@ -83,9 +83,9 @@ export default function ChatbotPage() {
     }
   }, []);
 
-  const toggleListening = () => {
+  const toggleListening = async () => {
     if (!recognitionRef.current) {
-      alert("Voice input is not supported in this browser.");
+      alert("Voice input is not supported in this browser. Try using Chrome or Edge.");
       return;
     }
     if (isListeningRef.current) {
@@ -93,12 +93,14 @@ export default function ChatbotPage() {
       setIsListening(false);
       recognitionRef.current.stop();
     } else {
-      isListeningRef.current = true;
-      setIsListening(true);
       try {
+        await navigator.mediaDevices.getUserMedia({ audio: true });
+        isListeningRef.current = true;
+        setIsListening(true);
         recognitionRef.current.start();
       } catch (err) {
-        console.error(err);
+        console.error("Microphone error:", err);
+        alert("Microphone access denied. Please allow microphone permissions in your browser settings to use voice input, or check if your device is properly connected.");
       }
     }
   };
@@ -329,18 +331,8 @@ export default function ChatbotPage() {
         </div>
 
         {/* Input Area */}
-        <div style={{ padding: '0 2rem 2rem' }}>
-          <form onSubmit={handleSubmit} style={{ 
-            background: 'rgba(255, 255, 255, 0.04)', 
-            backdropFilter: 'blur(16px)', 
-            border: '1px solid rgba(255, 255, 255, 0.1)', 
-            borderRadius: '24px', 
-            padding: '0.5rem', 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '0.5rem', 
-            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)' 
-          }}>
+        <div className="chatbot-form-wrapper">
+          <form className="chatbot-form" onSubmit={handleSubmit}>
             {/* Pending File Preview */}
             {pendingFile && (
               <div style={{ display: 'flex', gap: '0.5rem', padding: '0 0.5rem', marginTop: '0.25rem' }}>
@@ -361,7 +353,7 @@ export default function ChatbotPage() {
               </div>
             )}
 
-            <div className="chatbot-input-area" style={{ padding: '0 0.25rem', borderTop: 'none', background: 'transparent' }}>
+            <div className="chatbot-input-row">
               <input 
                 type="file" 
                 ref={fileInputRef} 
@@ -397,11 +389,10 @@ export default function ChatbotPage() {
                 )}
               </button>
               
-              <input
-                type="text"
-                className="chatbot-input"
-                style={{ background: 'transparent', border: 'none', boxShadow: 'none', flex: 1 }}
-                placeholder={isUploadingAttachment ? "Uploading file..." : "Send a message to CartGenie AI..."}
+                <input
+                  type="text"
+                  className="chatbot-input"
+                  placeholder={isUploadingAttachment ? "Uploading file..." : "Send a message to CartGenie AI..."}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 disabled={isLoading || isUploadingAttachment}
