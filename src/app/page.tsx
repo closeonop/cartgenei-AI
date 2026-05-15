@@ -40,7 +40,7 @@ export default function Home() {
             SCALES YOUR BUSINESS
           </p> */}
           <div className="hero-ctas">
-            <Link href="/free-trial" className="btn btn-primary">
+            <Link href="/chatbot" className="btn btn-primary">
               Start Free Trial
               <span className="btn-arrow">→</span>
             </Link>

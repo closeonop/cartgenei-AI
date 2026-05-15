@@ -38,6 +38,71 @@ export default function ChatbotPage() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Voice Recognition State
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  const isListeningRef = useRef(false);
+
+  // Initialize SpeechRecognition
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
+        
+        recognitionRef.current.onresult = (event: any) => {
+          let finalTranscript = "";
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            }
+          }
+          if (finalTranscript) {
+             setInput((prev) => prev + (prev && !prev.endsWith(" ") ? " " : "") + finalTranscript);
+          }
+        };
+
+        recognitionRef.current.onend = () => {
+          if (isListeningRef.current) {
+             try { recognitionRef.current.start(); } catch(e) {}
+          } else {
+             setIsListening(false);
+          }
+        };
+
+        recognitionRef.current.onerror = (event: any) => {
+           console.error("Speech recognition error:", event.error);
+           if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+              isListeningRef.current = false;
+              setIsListening(false);
+           }
+        };
+      }
+    }
+  }, []);
+
+  const toggleListening = () => {
+    if (!recognitionRef.current) {
+      alert("Voice input is not supported in this browser.");
+      return;
+    }
+    if (isListeningRef.current) {
+      isListeningRef.current = false;
+      setIsListening(false);
+      recognitionRef.current.stop();
+    } else {
+      isListeningRef.current = true;
+      setIsListening(true);
+      try {
+        recognitionRef.current.start();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
   // Auto-scroll to bottom
   useEffect(() => {
     if (messagesContainerRef.current) {
@@ -187,445 +252,59 @@ export default function ChatbotPage() {
   };
 
   return (
-    <>
-      <style>{`
-        .chat-app {
-          display: flex;
-          flex-direction: column;
-          height: 100vh;
-          background: #050505;
-          color: #f8fafc;
-          position: relative;
-          overflow: hidden;
-        }
-        
-        /* Drag Overlay */
-        .drag-overlay {
-          position: absolute;
-          inset: 0;
-          background: rgba(5, 5, 5, 0.85);
-          backdrop-filter: blur(8px);
-          z-index: 100;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          border: 2px dashed #3fa9f5;
-          border-radius: 20px;
-          margin: 1rem;
-          pointer-events: none;
-          transition: all 0.3s ease;
-          opacity: 0;
-          visibility: hidden;
-        }
-        .drag-overlay.active {
-          opacity: 1;
-          visibility: visible;
-        }
-        .drag-overlay-icon {
-          width: 80px;
-          height: 80px;
-          color: #3fa9f5;
-          margin-bottom: 1rem;
-          animation: float 3s ease-in-out infinite;
-        }
-        
-        /* Header */
-        .chat-header {
-          display: flex;
-          align-items: center;
-          padding: 1rem 2rem;
-          background: rgba(10, 10, 10, 0.8);
-          backdrop-filter: blur(12px);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-          z-index: 10;
-        }
-        .chat-back-btn {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: #a0aec0;
-          font-weight: 500;
-          transition: color 0.2s ease;
-        }
-        .chat-back-btn:hover {
-          color: #fff;
-        }
-        .chat-title-area {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.75rem;
-        }
-        .chat-avatar {
-          width: 32px;
-          height: 32px;
-          border-radius: 8px;
-          background: rgba(63, 169, 245, 0.15);
-          color: #3fa9f5;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .chat-title h1 {
-          font-size: 1.1rem;
-          font-weight: 600;
-          margin: 0;
-        }
-        .chat-status {
-          font-size: 0.75rem;
-          color: #22c55e;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-        
-        /* Messages Container */
-        .chat-messages {
-          flex: 1;
-          overflow-y: auto;
-          padding: 2rem;
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-          scroll-behavior: smooth;
-        }
-        .chat-messages::-webkit-scrollbar {
-          width: 6px;
-        }
-        .chat-messages::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.1);
-          border-radius: 10px;
-        }
-        
-        .message-row {
-          display: flex;
-          width: 100%;
-          max-width: 800px;
-          margin: 0 auto;
-        }
-        .message-row.user {
-          justify-content: flex-end;
-        }
-        .message-row.bot {
-          justify-content: flex-start;
-        }
-        
-        .message-bubble {
-          max-width: 80%;
-          padding: 1rem 1.25rem;
-          border-radius: 18px;
-          font-size: 0.95rem;
-          line-height: 1.5;
-          position: relative;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        
-        .message-row.user .message-bubble {
-          background: linear-gradient(135deg, #2563eb, #3fa9f5);
-          color: #fff;
-          border-bottom-right-radius: 4px;
-        }
-        
-        .message-row.bot .message-bubble {
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          color: #e2e8f0;
-          border-bottom-left-radius: 4px;
-        }
-        
-        .message-attachment {
-          margin-top: 0.5rem;
-          border-radius: 8px;
-          overflow: hidden;
-          background: rgba(0, 0, 0, 0.2);
-          border: 1px solid rgba(255,255,255,0.1);
-          display: inline-block;
-          max-width: 100%;
-        }
-        
-        .message-attachment img {
-          max-width: 100%;
-          max-height: 300px;
-          object-fit: cover;
-          display: block;
-        }
-        
-        .message-doc {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1rem;
-          color: #3fa9f5;
-          font-weight: 500;
-          text-decoration: underline;
-          font-size: 0.85rem;
-        }
-        
-        /* Input Area Container */
-        .chat-input-wrapper {
-          padding: 0 2rem 2rem;
-          background: linear-gradient(to top, #050505 50%, transparent);
-          z-index: 10;
-        }
-        
-        .chat-input-container {
-          max-width: 800px;
-          margin: 0 auto;
-          background: rgba(255, 255, 255, 0.04);
-          backdrop-filter: blur(16px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 24px;
-          padding: 0.5rem;
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-          transition: box-shadow 0.3s ease, border-color 0.3s ease;
-        }
-        
-        .chat-input-container:focus-within {
-          border-color: rgba(63, 169, 245, 0.5);
-          box-shadow: 0 0 30px rgba(63, 169, 245, 0.15), 0 10px 40px rgba(0, 0, 0, 0.3);
-        }
-        
-        /* Preview Area */
-        .input-preview-area {
-          display: flex;
-          gap: 0.5rem;
-          padding: 0 0.5rem;
-          margin-top: 0.25rem;
-        }
-        
-        .preview-chip {
-          position: relative;
-          background: rgba(0, 0, 0, 0.3);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 12px;
-          padding: 0.25rem;
-          display: flex;
-          align-items: center;
-          width: fit-content;
-        }
-        
-        .preview-chip img {
-          width: 48px;
-          height: 48px;
-          object-fit: cover;
-          border-radius: 8px;
-        }
-        
-        .preview-chip .doc-icon {
-          width: 48px;
-          height: 48px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(255,255,255,0.05);
-          border-radius: 8px;
-          color: #a0aec0;
-        }
-        
-        .preview-remove-btn {
-          position: absolute;
-          top: -6px;
-          right: -6px;
-          background: #ef4444;
-          color: white;
-          border: none;
-          border-radius: 50%;
-          width: 20px;
-          height: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          font-size: 12px;
-          box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
-        
-        /* Input Field & Buttons */
-        .chat-input-row {
-          display: flex;
-          align-items: flex-end;
-          gap: 0.5rem;
-          padding: 0 0.25rem;
-        }
-        
-        .attach-btn {
-          background: none;
-          border: none;
-          color: #a0aec0;
-          cursor: pointer;
-          padding: 0.5rem;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.2s;
-          flex-shrink: 0;
-        }
-        
-        .attach-btn:hover {
-          color: #fff;
-          background: rgba(255, 255, 255, 0.05);
-        }
-        
-        .chat-input {
-          flex: 1;
-          min-width: 0;
-          background: transparent;
-          border: none;
-          color: #fff;
-          font-family: inherit;
-          font-size: 1rem;
-          padding: 0.75rem 0.5rem;
-          outline: none;
-          resize: none;
-          min-height: 44px;
-          max-height: 200px;
-          line-height: 1.5;
-        }
-        
-        .chat-input::placeholder {
-          color: #4a5568;
-        }
-        
-        .send-btn {
-          background: #3fa9f5;
-          color: #000;
-          border: none;
-          border-radius: 50%;
-          width: 40px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          margin-bottom: 2px;
-          margin-right: 2px;
-          flex-shrink: 0;
-        }
-        
-        .send-btn:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 15px rgba(63, 169, 245, 0.4);
-          background: #60C3FF;
-        }
-        
-        .send-btn:disabled {
-          background: rgba(255, 255, 255, 0.1);
-          color: rgba(255, 255, 255, 0.3);
-          cursor: not-allowed;
-        }
-        
-        /* Loading Dots */
-        .loading-dots {
-          display: flex;
-          gap: 4px;
-          align-items: center;
-          padding: 1rem 1.5rem !important;
-        }
-        .loading-dots span {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #a0aec0;
-          animation: dot-bounce 1.4s infinite ease-in-out both;
-        }
-        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
-        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
-        
-        @keyframes dot-bounce {
-          0%, 80%, 100% { transform: scale(0); }
-          40% { transform: scale(1); }
-        }
+    <div className="chatbot-page" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
+      {/* Drag & Drop Overlay */}
+      <div className={`drag-overlay ${isDragging ? "active" : ""}`} style={{
+        position: 'absolute', inset: 0, background: 'rgba(5, 5, 5, 0.85)', backdropFilter: 'blur(8px)', zIndex: 100,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        border: '2px dashed var(--primary)', borderRadius: '24px', margin: '2rem', pointerEvents: 'none',
+        transition: 'all 0.3s ease', opacity: isDragging ? 1 : 0, visibility: isDragging ? 'visible' : 'hidden'
+      }}>
+        <svg style={{ width: '80px', height: '80px', color: 'var(--primary)', marginBottom: '1rem', animation: 'float 3s ease-in-out infinite' }} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+        </svg>
+        <h2 style={{ fontSize: "1.5rem", fontWeight: 600 }}>Drop files to upload</h2>
+        <p style={{ color: "var(--text-muted)", marginTop: "0.5rem" }}>Images, PDFs, or Documents</p>
+      </div>
 
-        /* Mobile Adjustments */
-        @media (max-width: 768px) {
-          .chat-messages {
-            padding: 1rem;
-          }
-          .message-bubble {
-            max-width: 90%;
-          }
-          .chat-input-wrapper {
-            padding: 0 1rem 1rem;
-          }
-          .chat-input-container {
-            border-radius: 20px;
-          }
-          .chat-input-row {
-            gap: 0.25rem;
-          }
-          .chat-input {
-            font-size: 0.95rem;
-            padding: 0.5rem 0.25rem;
-          }
-          .attach-btn {
-            padding: 0.4rem;
-          }
-          .send-btn {
-            width: 36px;
-            height: 36px;
-          }
-        }
-      `}</style>
-
-      <div 
-        className="chat-app"
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        {/* Drag & Drop Overlay */}
-        <div className={`drag-overlay ${isDragging ? "active" : ""}`}>
-          <svg className="drag-overlay-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-          <h2 style={{ fontSize: "1.5rem", fontWeight: 600 }}>Drop files to upload</h2>
-          <p style={{ color: "#a0aec0", marginTop: "0.5rem" }}>Images, PDFs, or Documents</p>
-        </div>
-
+      <div className="chatbot-container">
         {/* Header */}
-        <header className="chat-header">
-          <Link href="/" className="chat-back-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <div className="chatbot-header">
+          <Link href="/" className="back-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="m15 18-6-6 6-6"/>
             </svg>
             Back
           </Link>
-          <div className="chat-title-area">
-            <div className="chat-avatar">
+          <div className="chatbot-title" style={{ flex: 1, justifyContent: 'center' }}>
+            <div className="chatbot-avatar">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                 <path d="M9 9h6"></path>
                 <path d="M9 13h6"></path>
               </svg>
             </div>
-            <div className="chat-title">
-              <h1>CartGenie AI</h1>
-              <span className="chat-status">● Online</span>
+            <div>
+              <h1 style={{ margin: 0 }}>CartGenie AI</h1>
+              <span className="online-status">● Online</span>
             </div>
           </div>
-          <div style={{ width: "60px" }}></div> {/* Placeholder for centering */}
-        </header>
+          <div style={{ width: '60px' }}></div>
+        </div>
 
         {/* Messages */}
-        <main className="chat-messages" ref={messagesContainerRef}>
+        <div className="chatbot-messages" ref={messagesContainerRef}>
           {messages.map((msg) => (
-            <div key={msg.id} className={`message-row ${msg.role}`}>
+            <div key={msg.id} className={`message ${msg.role === "user" ? "user-message" : "bot-message"}`}>
               <div className="message-bubble">
                 {msg.content}
                 
                 {msg.attachmentUrl && msg.attachmentName && (
-                  <div className="message-attachment">
+                  <div style={{ marginTop: '0.5rem', borderRadius: '8px', overflow: 'hidden', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', display: 'inline-block', maxWidth: '100%' }}>
                     {msg.attachmentUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-                      <img src={msg.attachmentUrl} alt="Attachment" />
+                      <img src={msg.attachmentUrl} alt="Attachment" style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'cover', display: 'block' }} />
                     ) : (
-                      <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="message-doc">
+                      <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', color: 'var(--primary)', fontWeight: 500, fontSize: '0.85rem' }}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                         </svg>
@@ -635,44 +314,54 @@ export default function ChatbotPage() {
                   </div>
                 )}
               </div>
+              <span className="message-time">
+                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
             </div>
           ))}
           {isLoading && (
-            <div className="message-row bot">
+            <div className="message bot-message">
               <div className="message-bubble loading-dots">
                 <span></span><span></span><span></span>
               </div>
             </div>
           )}
-        </main>
+        </div>
 
         {/* Input Area */}
-        <div className="chat-input-wrapper">
-          <form className="chat-input-container" onSubmit={handleSubmit}>
+        <div style={{ padding: '0 2rem 2rem' }}>
+          <form onSubmit={handleSubmit} style={{ 
+            background: 'rgba(255, 255, 255, 0.04)', 
+            backdropFilter: 'blur(16px)', 
+            border: '1px solid rgba(255, 255, 255, 0.1)', 
+            borderRadius: '24px', 
+            padding: '0.5rem', 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '0.5rem', 
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)' 
+          }}>
             {/* Pending File Preview */}
             {pendingFile && (
-              <div className="input-preview-area">
-                <div className="preview-chip">
+              <div style={{ display: 'flex', gap: '0.5rem', padding: '0 0.5rem', marginTop: '0.25rem' }}>
+                <div style={{ position: 'relative', background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '0.25rem', display: 'flex', alignItems: 'center', width: 'fit-content' }}>
                   {pendingPreview ? (
-                    <img src={pendingPreview} alt="Preview" />
+                    <img src={pendingPreview} alt="Preview" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px' }} />
                   ) : (
-                    <div className="doc-icon">
+                    <div style={{ width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.05)', borderRadius: '8px', color: 'var(--text-muted)' }}>
                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </div>
                   )}
-                  <button type="button" className="preview-remove-btn" onClick={clearPendingFile}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
+                  <button type="button" onClick={clearPendingFile} style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '12px', boxShadow: '0 2px 5px rgba(0,0,0,0.3)' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                   </button>
                 </div>
               </div>
             )}
 
-            <div className="chat-input-row">
+            <div className="chatbot-input-area" style={{ padding: '0 0.25rem', borderTop: 'none', background: 'transparent' }}>
               <input 
                 type="file" 
                 ref={fileInputRef} 
@@ -681,18 +370,37 @@ export default function ChatbotPage() {
               />
               <button 
                 type="button" 
-                className="attach-btn" 
                 onClick={() => fileInputRef.current?.click()}
                 title="Attach file"
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.5rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
               </button>
               
+              <button 
+                type="button" 
+                onClick={toggleListening}
+                title={isListening ? "Stop listening" : "Start voice input"}
+                style={{ background: 'none', border: 'none', color: isListening ? '#ef4444' : 'var(--text-muted)', cursor: 'pointer', padding: '0.5rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+              >
+                {isListening ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                  </svg>
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                  </svg>
+                )}
+              </button>
+              
               <input
                 type="text"
-                className="chat-input"
+                className="chatbot-input"
+                style={{ background: 'transparent', border: 'none', boxShadow: 'none', flex: 1 }}
                 placeholder={isUploadingAttachment ? "Uploading file..." : "Send a message to CartGenie AI..."}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -701,7 +409,8 @@ export default function ChatbotPage() {
               
               <button 
                 type="submit" 
-                className="send-btn" 
+                className="chatbot-send-btn" 
+                style={{ flexShrink: 0 }}
                 disabled={(!input.trim() && !pendingFile) || isLoading || isUploadingAttachment}
               >
                 {isUploadingAttachment ? (
@@ -719,6 +428,6 @@ export default function ChatbotPage() {
           </form>
         </div>
       </div>
-    </>
+    </div>
   );
 }

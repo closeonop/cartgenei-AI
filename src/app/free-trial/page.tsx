@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Pricing from "@/components/Pricing";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -38,70 +39,7 @@ export default function FreeTrialPage() {
           </p>
         </div>
 
-        <div className="pricing-grid">
-          {/* Starter */}
-          <div className="pricing-card">
-            <p className="pricing-tier">Starter</p>
-            <p className="pricing-price">
-              $0<span>/mo</span>
-            </p>
-            <p className="pricing-desc">
-              Perfect for small stores testing the waters with AI automation.
-            </p>
-            <ul className="pricing-features">
-              <li>Up to 500 conversations/mo</li>
-              <li>Order tracking chatbot</li>
-              <li>Basic cart recovery</li>
-              <li>Email notifications</li>
-              <li>Community support</li>
-            </ul>
-            <Link href="#" className="btn btn-outline">
-              Get Started Free
-            </Link>
-          </div>
-
-          {/* Pro */}
-          <div className="pricing-card popular">
-            <p className="pricing-tier">Pro</p>
-            <p className="pricing-price">
-              $49<span>/mo</span>
-            </p>
-            <p className="pricing-desc">
-              For growing brands that want serious conversion lifts.
-            </p>
-            <ul className="pricing-features">
-              <li>Unlimited conversations</li>
-              <li>Full order &amp; refund automation</li>
-              <li>Advanced cart recovery flows</li>
-              <li>Fraud detection &amp; order rejection</li>
-              <li>Analytics dashboard</li>
-              <li>Priority support</li>
-            </ul>
-            <Link href="#" className="btn btn-primary">
-              Start 14-Day Free Trial
-            </Link>
-          </div>
-
-          {/* Enterprise */}
-          <div className="pricing-card">
-            <p className="pricing-tier">Enterprise</p>
-            <p className="pricing-price">Custom</p>
-            <p className="pricing-desc">
-              Tailored solutions for high-volume e-commerce operations.
-            </p>
-            <ul className="pricing-features">
-              <li>Everything in Pro</li>
-              <li>Custom AI training on your data</li>
-              <li>Multi-store support</li>
-              <li>Dedicated account manager</li>
-              <li>SLA &amp; uptime guarantees</li>
-              <li>API access &amp; webhooks</li>
-            </ul>
-            <Link href="#" className="btn btn-outline">
-              Contact Sales
-            </Link>
-          </div>
-        </div>
+        <Pricing />
       </section>
 
       {/* ===== WHAT YOU GET ===== */}
@@ -229,7 +167,7 @@ export default function FreeTrialPage() {
             14-day free trial awaits.
           </p>
           <div className="hero-ctas">
-            <Link href="#" className="btn btn-primary">
+            <Link href="/chatbot" className="btn btn-primary">
               Start Free Trial <span className="btn-arrow">→</span>
             </Link>
           </div>
