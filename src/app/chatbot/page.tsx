@@ -16,15 +16,70 @@ type Message = {
   attachmentName?: string;
 };
 
+const QUICK_ACTIONS = [
+  {
+    label: "Cancel my order",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  },
+  {
+    label: "I want a replacement",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+      </svg>
+    ),
+  },
+  {
+    label: "Track my order",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+      </svg>
+    ),
+  },
+  {
+    label: "Refund status",
+    icon: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  },
+];
+
+// Bot avatar SVG icon
+const BotIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="11" width="18" height="10" rx="2" />
+    <circle cx="12" cy="5" r="2" />
+    <path d="M12 7v4" />
+    <line x1="8" y1="16" x2="8" y2="16" />
+    <line x1="16" y1="16" x2="16" y2="16" />
+  </svg>
+);
+
+// Human avatar SVG icon
+const UserIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
 export default function ChatbotPage() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId] = useState(() => "session_" + Math.random().toString(36).substring(7));
+  const [showQuickActions, setShowQuickActions] = useState(true);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       role: "bot",
-      content: "Hi there! I am CartGenie AI. How can I help you boost your ecommerce conversions today?",
+      content: "Hi there! 👋 I am CartGenie AI. How can I help you today? Pick a topic below or type your question.",
       timestamp: new Date(),
     },
   ]);
@@ -174,9 +229,11 @@ export default function ChatbotPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if ((!input.trim() && !pendingFile) || isLoading || isUploadingAttachment) return;
+  const sendMessage = async (messageText: string) => {
+    if ((!messageText.trim() && !pendingFile) || isLoading || isUploadingAttachment) return;
+
+    // Hide quick actions once the user sends something
+    setShowQuickActions(false);
 
     let attachmentUrl = undefined;
     let attachmentName = undefined;
@@ -195,7 +252,7 @@ export default function ChatbotPage() {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: input.trim(),
+      content: messageText.trim(),
       timestamp: new Date(),
       attachmentUrl,
       attachmentName
@@ -253,6 +310,15 @@ export default function ChatbotPage() {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    sendMessage(input);
+  };
+
+  const handleQuickAction = (label: string) => {
+    sendMessage(label);
+  };
+
   return (
     <div className="chatbot-page" onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
       {/* Drag & Drop Overlay */}
@@ -271,60 +337,98 @@ export default function ChatbotPage() {
 
       <div className="chatbot-container">
         {/* Header */}
-        <div className="chatbot-header">
-          <Link href="/" className="back-btn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="m15 18-6-6 6-6"/>
-            </svg>
-            Back
-          </Link>
-          <div className="chatbot-title" style={{ flex: 1, justifyContent: 'center' }}>
-            <div className="chatbot-avatar">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                <path d="M9 9h6"></path>
-                <path d="M9 13h6"></path>
-              </svg>
+        <div className="chatbot-header-premium">
+          <div className="chatbot-header-main">
+            <div className="chatbot-logo-circle">
+              <img src="/chatbot.webp" alt="CartGenie AI" />
             </div>
-            <div>
-              <h1 style={{ margin: 0 }}>CartGenie AI</h1>
-              <span className="online-status">● Online</span>
+            <div className="chatbot-header-text">
+              <h1>CartGenie AI</h1>
+              <p>Online</p>
             </div>
           </div>
-          <div style={{ width: '60px' }}></div>
+          <Link href="/" className="chatbot-close-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </Link>
         </div>
 
         {/* Messages */}
         <div className="chatbot-messages" ref={messagesContainerRef}>
+          {/* Bubble background */}
+          <div className="chat-bg-blobs"></div>
+
+          {/* Spacer pushes content to bottom */}
+          <div className="chat-spacer"></div>
+
           {messages.map((msg) => (
-            <div key={msg.id} className={`message ${msg.role === "user" ? "user-message" : "bot-message"}`}>
-              <div className="message-bubble">
-                {msg.content}
-                
-                {msg.attachmentUrl && msg.attachmentName && (
-                  <div style={{ marginTop: '0.5rem', borderRadius: '8px', overflow: 'hidden', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', display: 'inline-block', maxWidth: '100%' }}>
-                    {msg.attachmentUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
-                      <img src={msg.attachmentUrl} alt="Attachment" style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'cover', display: 'block' }} />
-                    ) : (
-                      <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', color: 'var(--primary)', fontWeight: 500, fontSize: '0.85rem' }}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                        </svg>
-                        {msg.attachmentName}
-                      </a>
-                    )}
-                  </div>
-                )}
+            <div key={msg.id} className={`message-row ${msg.role === "user" ? "user" : "bot"}`}>
+              <div className="message-avatar-wrapper">
+                <div className="message-avatar-img">
+                  {msg.role === "bot" ? <BotIcon /> : <UserIcon />}
+                </div>
               </div>
-              <span className="message-time">
-                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
+              
+              <div className="message-content">
+                <div className="message-sender">{msg.role === "bot" ? "CartGenie" : "You"}</div>
+                <div className="message-bubble">
+                  {msg.content}
+                  
+                  {msg.attachmentUrl && msg.attachmentName && (
+                    <div style={{ marginTop: '0.5rem', borderRadius: '8px', overflow: 'hidden', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', display: 'inline-block', maxWidth: '100%' }}>
+                      {msg.attachmentUrl.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                        <img src={msg.attachmentUrl} alt="Attachment" style={{ maxWidth: '100%', maxHeight: '300px', objectFit: 'cover', display: 'block' }} />
+                      ) : (
+                        <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 1rem', color: 'white', fontWeight: 500, fontSize: '0.85rem' }}>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                          </svg>
+                          {msg.attachmentName}
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <span className="message-time">
+                  {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
             </div>
           ))}
+
+          {/* Quick Action Chips — show only when conversation is fresh */}
+          {showQuickActions && messages.length <= 1 && !isLoading && (
+            <div className="quick-actions">
+              {QUICK_ACTIONS.map((action) => (
+                <button
+                  key={action.label}
+                  className="quick-action-chip"
+                  onClick={() => handleQuickAction(action.label)}
+                  type="button"
+                >
+                  {action.icon}
+                  {action.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           {isLoading && (
-            <div className="message bot-message">
-              <div className="message-bubble loading-dots">
-                <span></span><span></span><span></span>
+            <div className="message-row bot">
+              <div className="message-avatar-wrapper">
+                <div className="message-avatar-img">
+                  <BotIcon />
+                </div>
+              </div>
+              <div className="message-content">
+                <div className="message-sender">CartGenie</div>
+                <div className="message-bubble" style={{ padding: '0.65rem 1.15rem' }}>
+                  <div className="loading-dots-premium">
+                    <span></span><span></span><span></span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -335,7 +439,7 @@ export default function ChatbotPage() {
           <form className="chatbot-form" onSubmit={handleSubmit}>
             {/* Pending File Preview */}
             {pendingFile && (
-              <div style={{ display: 'flex', gap: '0.5rem', padding: '0 0.5rem', marginTop: '0.25rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem', padding: '0.5rem 0.75rem', marginBottom: '0.5rem' }}>
                 <div style={{ position: 'relative', background: 'rgba(0, 0, 0, 0.3)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', padding: '0.25rem', display: 'flex', alignItems: 'center', width: 'fit-content' }}>
                   {pendingPreview ? (
                     <img src={pendingPreview} alt="Preview" style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '8px' }} />
@@ -360,39 +464,39 @@ export default function ChatbotPage() {
                 style={{ display: "none" }} 
                 onChange={handleFileChange}
               />
-              <button 
-                type="button" 
-                onClick={() => fileInputRef.current?.click()}
-                title="Attach file"
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.5rem', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                </svg>
-              </button>
               
-                <input
-                  type="text"
-                  className="chatbot-input"
-                  placeholder={isUploadingAttachment ? "Uploading file..." : "Send a message to CartGenie AI..."}
+              <input
+                type="text"
+                className="chatbot-input"
+                placeholder={isUploadingAttachment ? "Uploading file..." : "What is on your mind?"}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 disabled={isLoading || isUploadingAttachment}
               />
+
+              <button 
+                type="button" 
+                className="input-icon-btn"
+                onClick={() => fileInputRef.current?.click()}
+                title="Attach image"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+              </button>
               
               <button 
                 type="submit" 
                 className="chatbot-send-btn" 
-                style={{ flexShrink: 0 }}
                 disabled={(!input.trim() && !pendingFile) || isLoading || isUploadingAttachment}
               >
                 {isUploadingAttachment ? (
-                   <svg className="animate-spin" style={{width: '20px', height: '20px', animation: 'spin 1s linear infinite'}} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                   <svg className="animate-spin" style={{width: '18px', height: '18px', animation: 'spin 1s linear infinite'}} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                    </svg>
                 ) : (
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ marginLeft: "2px" }}>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" />
                   </svg>
                 )}
